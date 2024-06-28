@@ -58,7 +58,7 @@ long long get_energy() {
 
   /* Open the command for reading. */
   fp =
-      popen("echo 1234 | sudo -S rdmsr -u 1553 | xargs -0 -I{} echo {}", "r");
+      popen("echo dvfs1 | sudo -S rdmsr -u 1553 | xargs -0 -I{} echo {}", "r");
   if (fp == NULL) {
     fprintf(stderr, "Failed to run command\n");
     exit(1);
