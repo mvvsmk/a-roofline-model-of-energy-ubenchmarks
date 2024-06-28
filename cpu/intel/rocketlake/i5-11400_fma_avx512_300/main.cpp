@@ -84,7 +84,7 @@ extern "C" void sumsqf(const float *data, size_t length);
 int main(int argc, char **argv) {
 
   /* Number of elements in the array */
-  const size_t array_length = 1024 * 1024 * 300;
+  const size_t array_length = 1024 * 1024 * 500;
 
   /* Create and initialize arrays */
   double *data0 = (double *)memalign(64, array_length * sizeof(double));
