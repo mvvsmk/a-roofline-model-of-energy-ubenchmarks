@@ -57,8 +57,7 @@ long long get_energy() {
   long long value;
 
   /* Open the command for reading. */
-  fp =
-      popen("echo 1234 | sudo -S rdmsr -u 1553 | xargs -0 -I{} echo {}", "r");
+  fp = popen("rdmsr -u 1553 | xargs -0 -I{} echo {}", "r");
   if (fp == NULL) {
     fprintf(stderr, "Failed to run command\n");
     exit(1);
@@ -112,6 +111,8 @@ int main(int argc, char **argv) {
      accordingly.
    */
   long long energy_before = get_energy();
+  const char *env_var_name = "PAPI_EVENT_NAME";
+  const char *papi_event_name = getenv(env_var_name);
 #pragma omp parallel num_threads(6)
   {
 #pragma omp sections
@@ -138,11 +139,9 @@ int main(int argc, char **argv) {
           }
 
           // papi adding event set
-          retval = PAPI_add_named_event(eventset,
-                                        "LONGEST_LAT_CACHE:MISS");
+          retval = PAPI_add_named_event(eventset, papi_event_name);
           if (retval != PAPI_OK) {
-            fprintf(stderr,
-                    "Error adding LONGEST_LAT_CACHE:MISS: %s\n",
+            fprintf(stderr, "Error adding %s: %s\n", papi_event_name,
                     PAPI_strerror(retval));
           }
 
@@ -151,7 +150,7 @@ int main(int argc, char **argv) {
           PAPI_reset(eventset);
           retval = PAPI_start(eventset);
           if (retval != PAPI_OK) {
-            fprintf(stderr, "Error starting CUDA: %s\n", PAPI_strerror(retval));
+            fprintf(stderr, "Error PAPI: %s\n", PAPI_strerror(retval));
           }
 
           /* start measure */
@@ -208,11 +207,9 @@ int main(int argc, char **argv) {
           }
 
           // papi adding event set
-          retval = PAPI_add_named_event(eventset,
-                                        "LONGEST_LAT_CACHE:MISS");
+          retval = PAPI_add_named_event(eventset, papi_event_name);
           if (retval != PAPI_OK) {
-            fprintf(stderr,
-                    "Error adding LONGEST_LAT_CACHE:MISS : %s\n",
+            fprintf(stderr, "Error adding %s: %s\n", papi_event_name,
                     PAPI_strerror(retval));
           }
 
@@ -221,7 +218,7 @@ int main(int argc, char **argv) {
           PAPI_reset(eventset);
           retval = PAPI_start(eventset);
           if (retval != PAPI_OK) {
-            fprintf(stderr, "Error starting CUDA: %s\n", PAPI_strerror(retval));
+            fprintf(stderr, "Error PAPI: %s\n", PAPI_strerror(retval));
           }
 
           /*start measure */
@@ -279,11 +276,9 @@ int main(int argc, char **argv) {
           // }
 
           // // papi adding event set
-          // retval = PAPI_add_named_event(eventset,
-          //                               "perf::PERF_COUNT_HW_CACHE_LL:MISS");
+          // retval = PAPI_add_named_event(eventset, papi_event_name);
           // if (retval != PAPI_OK) {
-          //   fprintf(stderr,
-          //           "Error adding perf::PERF_COUNT_HW_CACHE_LL:MISS : %s\n",
+          //   fprintf(stderr, "Error adding %s: %s\n", papi_event_name,
           //           PAPI_strerror(retval));
           // }
 
@@ -292,8 +287,7 @@ int main(int argc, char **argv) {
           // PAPI_reset(eventset);
           // retval = PAPI_start(eventset);
           // if (retval != PAPI_OK) {
-          //   fprintf(stderr, "Error starting CUDA: %s\n",
-          //   PAPI_strerror(retval));
+          //   fprintf(stderr, "Error PAPI: %s\n", PAPI_strerror(retval));
           // }
 
           /*start measure */
@@ -350,11 +344,9 @@ int main(int argc, char **argv) {
           // }
 
           // // papi adding event set
-          // retval = PAPI_add_named_event(eventset,
-          //                               "perf::PERF_COUNT_HW_CACHE_LL:MISS");
+          // retval = PAPI_add_named_event(eventset, papi_event_name);
           // if (retval != PAPI_OK) {
-          //   fprintf(stderr,
-          //           "Error adding perf::PERF_COUNT_HW_CACHE_LL:MISS: %s\n",
+          //   fprintf(stderr, "Error adding %s: %s\n", papi_event_name,
           //           PAPI_strerror(retval));
           // }
 
@@ -363,8 +355,7 @@ int main(int argc, char **argv) {
           // PAPI_reset(eventset);
           // retval = PAPI_start(eventset);
           // if (retval != PAPI_OK) {
-          //   fprintf(stderr, "Error starting CUDA: %s\n",
-          //   PAPI_strerror(retval));
+          //   fprintf(stderr, "Error PAPI: %s\n", PAPI_strerror(retval));
           // }
 
           /* start measure */
@@ -421,11 +412,9 @@ int main(int argc, char **argv) {
           // }
 
           // // papi adding event set
-          // retval = PAPI_add_named_event(eventset,
-          //                               "perf::PERF_COUNT_HW_CACHE_LL:MISS");
+          // retval = PAPI_add_named_event(eventset, papi_event_name);
           // if (retval != PAPI_OK) {
-          //   fprintf(stderr,
-          //           "Error adding perf::PERF_COUNT_HW_CACHE_LL:MISS: %s\n",
+          //   fprintf(stderr, "Error adding %s: %s\n", papi_event_name,
           //           PAPI_strerror(retval));
           // }
 
@@ -434,8 +423,7 @@ int main(int argc, char **argv) {
           // PAPI_reset(eventset);
           // retval = PAPI_start(eventset);
           // if (retval != PAPI_OK) {
-          //   fprintf(stderr, "Error starting CUDA: %s\n",
-          //   PAPI_strerror(retval));
+          //   fprintf(stderr, "Error PAPI: %s\n", PAPI_strerror(retval));
           // }
 
           /* start measure */
@@ -492,11 +480,9 @@ int main(int argc, char **argv) {
           // }
 
           // // papi adding event set
-          // retval = PAPI_add_named_event(eventset,
-          //                               "perf::PERF_COUNT_HW_CACHE_LL:MISS");
+          // retval = PAPI_add_named_event(eventset, papi_event_name);
           // if (retval != PAPI_OK) {
-          //   fprintf(stderr,
-          //           "Error adding perf::PERF_COUNT_HW_CACHE_LL:MISS: %s\n",
+          //   fprintf(stderr, "Error adding %s: %s\n", papi_event_name,
           //           PAPI_strerror(retval));
           // }
 
@@ -505,8 +491,7 @@ int main(int argc, char **argv) {
           // PAPI_reset(eventset);
           // retval = PAPI_start(eventset);
           // if (retval != PAPI_OK) {
-          //   fprintf(stderr, "Error starting CUDA: %s\n",
-          //   PAPI_strerror(retval));
+          //   fprintf(stderr, "Error PAPI: %s\n", PAPI_strerror(retval));
           // }
 
           /* start measure */
