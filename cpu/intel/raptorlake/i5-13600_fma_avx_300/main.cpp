@@ -33,16 +33,6 @@ THE SOFTWARE.
 // #define ITRS 10000
 
 /* ======================================================== */
-/* Timer */
-// namespace timer {
-
-// 	inline static uint64_t get_nsecs() {
-// 		struct timespec ts;
-// 		clock_gettime(CLOCK_MONOTONIC, &ts);
-// 		return ts.tv_sec * 1000000000ull + ts.tv_nsec;
-// 	}
-
-// }
 namespace cpu {
 
 inline static uint64_t get_ticks_acquire() {
@@ -96,15 +86,13 @@ extern "C" void sumsqf(const float *data, size_t length);
 
 int main(int argc, char **argv) {
 
+  const char *duration = "DUR";
+  const double time_per_benchmark = atof(getenv(duration));
+
   const char *freq = "FREQ";
   const long long FREQ = atoll(getenv(freq));
-
-  const double time_per_benchmark = 0.01;
-
-  const long long CLCK = int(time_per_benchmark * FREQ);
-
-  // const char *itr_len = "ITRS";
-  // const long long ITRS = atoll(getenv(itr_len));
+  const long long unsigned CLCK = int(time_per_benchmark * FREQ);
+  fprintf(stderr, "CLCK %llu \n", CLCK);
 
   const char *env_var_name = "PAPI_EVENT_NAME";
   const char *papi_event_name = getenv(env_var_name);
