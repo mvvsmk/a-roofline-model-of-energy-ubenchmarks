@@ -373,7 +373,7 @@ int main(int argc, char **argv) {
           do {
             sumsq(data2, array_length);
             check2 = cpu::get_ticks_release();
-            itr2;
+            itr2++;
           } while (check2 - start2 < CLCK && check2 > start2);
           const uint64_t end2 = cpu::get_ticks_release();
           long long energy_after2 = get_energy();
@@ -644,7 +644,7 @@ int main(int argc, char **argv) {
 
 #if (TYPE)
   double flops = 2 * array_length * MAD_PER_ELEMENT * ITRS *
-                 (1.0 / 128.0); // MAD_PER_ELEMENT = flops per inner loop itr
+                 (1.0 / 64.0); // MAD_PER_ELEMENT = flops per inner loop itr
 #else
   double flops = 2 * array_length * MAD_PER_ELEMENT * 4.0 * (1 / 8);
   // double flops = array_length * MAD_PER_ELEMENT / 64 ;
