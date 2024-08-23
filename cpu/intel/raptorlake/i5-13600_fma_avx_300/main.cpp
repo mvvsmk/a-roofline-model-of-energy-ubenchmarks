@@ -17,6 +17,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#include <algorithm>
 #include <malloc.h>
 #include <omp.h>
 #include <papi.h>
@@ -33,6 +34,17 @@ THE SOFTWARE.
 // #define ITRS 10000
 
 /* ======================================================== */
+
+double get_median(long long itr0, long long itr1, long long itr2,
+                  long long itr3, long long itr4, long long itr5) {
+  // Store all variables in an array
+  long long arr[6] = {itr0, itr1, itr2, itr3, itr4, itr5};
+
+  std::sort(arr, arr + 6);
+
+  return (arr[2] + arr[3]) / 2;
+}
+
 namespace cpu {
 
 inline static uint64_t get_ticks_acquire() {
@@ -86,13 +98,14 @@ extern "C" void sumsqf(const float *data, size_t length);
 
 int main(int argc, char **argv) {
 
-  const char *duration = "DUR";
-  const double time_per_benchmark = atof(getenv(duration));
+  const char *duration = "ITRS";
+  const long long ITRS = atoll(getenv(duration));
 
-  const char *freq = "FREQ";
-  const long long FREQ = atoll(getenv(freq));
-  const long long unsigned CLCK = int(time_per_benchmark * FREQ);
-  fprintf(stderr, "CLCK %llu \n", CLCK);
+  // const char *freq = "FREQ";
+  // const long long FREQ = atoll(getenv(freq));
+  // long long unsigned CLCK = int(time_per_benchmark * FREQ);
+  // CLCK = 20;
+  // fprintf(stderr, "CLCK %llu \n", CLCK);
 
   const char *env_var_name = "PAPI_EVENT_NAME";
   const char *papi_event_name = getenv(env_var_name);
@@ -206,11 +219,10 @@ int main(int argc, char **argv) {
           fprintf(stderr, "reached benchmark\n");
           long long energy_before0 = get_energy();
           const uint64_t start0 = cpu::get_ticks_acquire();
-          do {
+          while (itr0 < ITRS) {
             sumsq(data0, array_length);
-            check0 = cpu::get_ticks_release();
             itr0++;
-          } while (check0 - start0 < CLCK && check0 > start0);
+          }
           const uint64_t end0 = cpu::get_ticks_release();
           long long energy_after0 = get_energy();
           fprintf(stderr, "after benchmark\n");
@@ -281,11 +293,10 @@ int main(int argc, char **argv) {
           uint64_t check1;
           long long energy_before1 = get_energy();
           const uint64_t start1 = cpu::get_ticks_acquire();
-          do {
+          while (itr1 < ITRS) {
             sumsq(data1, array_length);
-            check1 = cpu::get_ticks_release();
             itr1++;
-          } while (check1 - start1 < CLCK && check1 > start1);
+          }
           const uint64_t end1 = cpu::get_ticks_release();
           long long energy_after1 = get_energy();
           fprintf(stderr, "after benchmark\n");
@@ -358,11 +369,10 @@ int main(int argc, char **argv) {
           fprintf(stderr, "reached benchmark\n");
           long long energy_before2 = get_energy();
           const uint64_t start2 = cpu::get_ticks_acquire();
-          do {
+          while (itr2 < ITRS) {
             sumsq(data2, array_length);
-            check2 = cpu::get_ticks_release();
             itr2++;
-          } while (check2 - start2 < CLCK && check2 > start2);
+          }
           const uint64_t end2 = cpu::get_ticks_release();
           long long energy_after2 = get_energy();
           fprintf(stderr, "after benchmark\n");
@@ -433,11 +443,10 @@ int main(int argc, char **argv) {
           uint64_t check3;
           long long energy_before3 = get_energy();
           const uint64_t start3 = cpu::get_ticks_acquire();
-          do {
+          while (itr3 < ITRS) {
             sumsq(data3, array_length);
-            check3 = cpu::get_ticks_release();
             itr3++;
-          } while (check3 - start3 < CLCK && check3 > start3);
+          }
           const uint64_t end3 = cpu::get_ticks_release();
           long long energy_after3 = get_energy();
           fprintf(stderr, "after benchmark\n");
@@ -508,11 +517,10 @@ int main(int argc, char **argv) {
           uint64_t check4;
           long long energy_before4 = get_energy();
           const uint64_t start4 = cpu::get_ticks_acquire();
-          do {
+          while (itr4 < ITRS) {
             sumsq(data4, array_length);
-            check4 = cpu::get_ticks_release();
             itr4++;
-          } while (check4 - start4 < CLCK && check4 > start4);
+          }
           const uint64_t end4 = cpu::get_ticks_release();
           long long energy_after4 = get_energy();
           /* end measure */
@@ -582,11 +590,10 @@ int main(int argc, char **argv) {
           uint64_t check5;
           long long energy_before5 = get_energy();
           const uint64_t start5 = cpu::get_ticks_acquire();
-          do {
+          while (itr5 < ITRS) {
             sumsq(data5, array_length);
-            check5 = cpu::get_ticks_release();
             itr5++;
-          } while (check5 - start5 < CLCK && check5 > start5);
+          }
           const uint64_t end5 = cpu::get_ticks_release();
           long long energy_after5 = get_energy();
           /* end measure */
@@ -628,13 +635,11 @@ int main(int argc, char **argv) {
   // long long energy_after = get_energy();
   /* Number of flops and bytes executed */
 
-  const double ITRS = (itr0 + itr1 + itr2 + itr3 + itr4 + itr5) / 6.0;
-
 #if (TYPE)
   double flops = 2 * array_length * MAD_PER_ELEMENT * ITRS *
-                 (1.0 / 64.0); // MAD_PER_ELEMENT = flops per inner loop itr
+                 (1.0 / 128.0); // MAD_PER_ELEMENT = flops per inner loop itr
 #else
-  double flops = 2 * array_length * MAD_PER_ELEMENT * 4.0 * (1 / 8);
+  double flops = 2 * array_length * MAD_PER_ELEMENT * 4.0 * (1.0 / 8.0);
   // double flops = array_length * MAD_PER_ELEMENT / 64 ;
 #endif
   double bytes = 2 * array_length * sizeof(double);
@@ -645,7 +650,7 @@ int main(int argc, char **argv) {
       64.0 * (count0 + count1 + count2 + count3 + count4 + count5) /
       threads_measured;
   double total_miss = miss_per_thread * 6;
-  double total_flops = flops * 6;
+  double total_flops = flops * ITRS;
 
   long long int energy_consumed;
   if (e0 > e1)
@@ -701,6 +706,12 @@ int main(int argc, char **argv) {
           "%lf\tExecution time 3: %lf\tExecution time 4: %lf\tExecution time "
           "5: %lf\n",
           execTime0, execTime1, execTime2, execTime3, execTime4, execTime5);
+  fprintf(
+      stderr,
+      "Execution time 0: %lld\tExecution time 1: %lld\tExecution time 2: "
+      "%lld\tExecution time 3: %lld\tExecution time 4: %lld\tExecution time "
+      "5: %lld\n",
+      ITRS);
   fprintf(stderr, "Execution time: %lf\n", execTime);
   fprintf(stderr, "Execution cycle: %ld\n", temp);
   fprintf(stderr, "GBytes: %5.03lf GFlops: %5.03lf\n", bytes / 1.0e+9,

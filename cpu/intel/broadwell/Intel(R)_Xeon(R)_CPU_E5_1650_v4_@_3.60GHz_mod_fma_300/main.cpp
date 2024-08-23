@@ -17,6 +17,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#include <algorithm>
 #include <malloc.h>
 #include <omp.h>
 #include <papi.h>
@@ -25,10 +26,25 @@ THE SOFTWARE.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 #include <unistd.h>
+#include <unordered_map>
+
+// #define ITRS 100000
+// #define ITRS 10000
 
 /* ======================================================== */
-/* Timer */
+
+double get_median(long long itr0, long long itr1, long long itr2,
+                  long long itr3, long long itr4, long long itr5) {
+  // Store all variables in an array
+  long long arr[6] = {itr0, itr1, itr2, itr3, itr4, itr5};
+
+  std::sort(arr, arr + 6);
+
+  return (arr[2] + arr[3]) / 2;
+}
+
 namespace cpu {
 
 inline static uint64_t get_ticks_acquire() {
@@ -65,13 +81,13 @@ long long get_energy() {
 
   /* Read the output a line at a time - it should be just one line. */
   if (fgets(path, sizeof(path) - 1, fp) != NULL) {
-    fprintf(stderr, "Output: %s", path);
+    // fprintf(stderr, "Output: %s", path);
     value = atoll(path); // Convert the output to an integer
   }
 
   /* Close the pipe and print the value. */
   pclose(fp);
-  fprintf(stderr, "Value: %lld\n", value);
+  // fprintf(stderr, "Value: %lld\n", value);
 
   return value;
 }
@@ -82,8 +98,23 @@ extern "C" void sumsqf(const float *data, size_t length);
 
 int main(int argc, char **argv) {
 
+  const char *duration = "ITRS";
+  const long long ITRS = atoll(getenv(duration));
+
+  // const char *freq = "FREQ";
+  // const long long FREQ = atoll(getenv(freq));
+  // long long unsigned CLCK = int(time_per_benchmark * FREQ);
+  // CLCK = 20;
+  // fprintf(stderr, "CLCK %llu \n", CLCK);
+
+  const char *env_var_name = "PAPI_EVENT_NAME";
+  const char *papi_event_name = getenv(env_var_name);
+
+  const char *env_var_cache_size = "SIZE_ARR";
+  long long unsigned array_size = atoll(getenv(env_var_cache_size));
   /* Number of elements in the array */
-  const size_t array_length = 1024 * 1024 * 500;
+  // const size_t array_length = 64 * 4;
+  const size_t array_length = array_size;
 
   /* Create and initialize arrays */
   double *data0 = (double *)memalign(64, array_length * sizeof(double));
@@ -99,8 +130,38 @@ int main(int argc, char **argv) {
   memset(data4, 0, array_length * sizeof(double));
   memset(data5, 0, array_length * sizeof(double));
 
+  // printf("data,address\n");
+  // for(int i = 0; i < array_size; i++){
+  //   printf("%lf,%d\n",data0[i],&data1[i]);
+  //   // printf("data %lf address : %d \n",data0[i],&data1[i]);
+  // }
+  // return 0;
+
   /*oi counter*/
   long long count0, count1, count2, count3, count4, count5;
+  long long e0, e1, e2, e3, e4, e5;
+  e0 = 0;
+  e1 = 0;
+  e2 = 0;
+  e3 = 0;
+  e4 = 0;
+  e5 = 0;
+
+  count0 = 0;
+  count1 = 0;
+  count2 = 0;
+  count3 = 0;
+  count4 = 0;
+  count5 = 0;
+
+  long long itr0 = 0;
+  long long itr1 = 0;
+  long long itr2 = 0;
+  long long itr3 = 0;
+  long long itr4 = 0;
+  long long itr5 = 0;
+
+  uint64_t temp;
 
   /* Timers */
   double execTime0, execTime1, execTime2, execTime3, execTime4, execTime5;
@@ -110,9 +171,8 @@ int main(int argc, char **argv) {
      cores, increase the number of data structures, timers, OpenMP threads, etc.
      accordingly.
    */
-  long long energy_before = get_energy();
-  const char *env_var_name = "PAPI_EVENT_NAME";
-  const char *papi_event_name = getenv(env_var_name);
+
+  // long long energy_before = get_energy();
 #pragma omp parallel num_threads(6)
   {
 #pragma omp sections
@@ -154,11 +214,17 @@ int main(int argc, char **argv) {
           }
 
           /* start measure */
-          fprintf(stderr, "reached benchmark\n");
           fprintf(stderr, "Double precision...\n");
+          uint64_t check0;
+          fprintf(stderr, "reached benchmark\n");
+          long long energy_before0 = get_energy();
           const uint64_t start0 = cpu::get_ticks_acquire();
-          sumsq(data0, array_length);
+          while (itr0 < ITRS) {
+            sumsq(data0, array_length);
+            itr0++;
+          }
           const uint64_t end0 = cpu::get_ticks_release();
+          long long energy_after0 = get_energy();
           fprintf(stderr, "after benchmark\n");
           /* end measure */
 
@@ -171,8 +237,9 @@ int main(int argc, char **argv) {
                     count);
           }
           count0 = count;
-
-          execTime0 = double(end0 - start0) / 1.7e+9;
+          temp = end0 - start0;
+          e0 = energy_after0 - energy_before0;
+          execTime0 = double(end0 - start0) / FREQ;
         }
 #else
         /* For single precision */
@@ -181,7 +248,7 @@ int main(int argc, char **argv) {
           sumsqf((const float *)data0, array_length * 2);
           const uint64_t end0 = cpu::get_ticks_release();
 
-          execTime0 = double(end0 - start0) / 1.7e+9;
+          execTime0 = double(end0 - start0) / FREQ;
         }
 #endif
       }
@@ -223,9 +290,15 @@ int main(int argc, char **argv) {
 
           /*start measure */
           fprintf(stderr, "reached benchmark\n");
+          uint64_t check1;
+          long long energy_before1 = get_energy();
           const uint64_t start1 = cpu::get_ticks_acquire();
-          sumsq(data1, array_length);
+          while (itr1 < ITRS) {
+            sumsq(data1, array_length);
+            itr1++;
+          }
           const uint64_t end1 = cpu::get_ticks_release();
+          long long energy_after1 = get_energy();
           fprintf(stderr, "after benchmark\n");
           /* end measure */
 
@@ -238,8 +311,8 @@ int main(int argc, char **argv) {
                     count);
           }
           count1 = count;
-
-          execTime1 = double(end1 - start1) / 1.7e+9;
+          e1 = energy_after1 - energy_before1;
+          execTime1 = double(end1 - start1) / FREQ;
         }
 #else
         /* For single precision */
@@ -276,9 +349,10 @@ int main(int argc, char **argv) {
           // }
 
           // // papi adding event set
-          // retval = PAPI_add_named_event(eventset, papi_event_name);
-          // if (retval != PAPI_OK) {
-          //   fprintf(stderr, "Error adding %s: %s\n", papi_event_name,
+          // retval = PAPI_add_named_event(eventset,
+          // "perf::PERF_COUNT_HW_CPU_CYCLES"); if (retval != PAPI_OK) {
+          //   fprintf(stderr, "Error adding perf::PERF_COUNT_HW_CPU_CYCLES:
+          //   %s\n",
           //           PAPI_strerror(retval));
           // }
 
@@ -291,10 +365,16 @@ int main(int argc, char **argv) {
           // }
 
           /*start measure */
+          uint64_t check2;
           fprintf(stderr, "reached benchmark\n");
-          const uint64_t start1 = cpu::get_ticks_acquire();
-          sumsq(data2, array_length);
-          const uint64_t end1 = cpu::get_ticks_release();
+          long long energy_before2 = get_energy();
+          const uint64_t start2 = cpu::get_ticks_acquire();
+          while (itr2 < ITRS) {
+            sumsq(data2, array_length);
+            itr2++;
+          }
+          const uint64_t end2 = cpu::get_ticks_release();
+          long long energy_after2 = get_energy();
           fprintf(stderr, "after benchmark\n");
           // /* end measure */
 
@@ -303,11 +383,11 @@ int main(int argc, char **argv) {
           // if (retval != PAPI_OK) {
           //   fprintf(stderr, "Error stopping:  %s\n", PAPI_strerror(retval));
           // } else {
-          //   printf("Measured %lld hw cache misses(thread3)\n", count);
+          //   printf("Measured %lld perf::PERF_COUNT_HW_CPU_CYCLES \n", count);
           // }
           // count2 = count;
-
-          execTime2 = double(end1 - start1) / 1.7e+9;
+          e2 = energy_after2 - energy_before2;
+          execTime2 = double(end2 - start2) / 1.7e+9;
         }
 #else
         /* For single precision */
@@ -360,9 +440,15 @@ int main(int argc, char **argv) {
 
           /* start measure */
           fprintf(stderr, "reached benchmark\n");
-          const uint64_t start1 = cpu::get_ticks_acquire();
-          sumsq(data3, array_length);
-          const uint64_t end1 = cpu::get_ticks_release();
+          uint64_t check3;
+          long long energy_before3 = get_energy();
+          const uint64_t start3 = cpu::get_ticks_acquire();
+          while (itr3 < ITRS) {
+            sumsq(data3, array_length);
+            itr3++;
+          }
+          const uint64_t end3 = cpu::get_ticks_release();
+          long long energy_after3 = get_energy();
           fprintf(stderr, "after benchmark\n");
           /* end measure */
 
@@ -374,8 +460,8 @@ int main(int argc, char **argv) {
           //   printf("Measured %lld hw cache misses (thread 4)\n", count);
           // }
           // count3 = count;
-
-          execTime3 = double(end1 - start1) / 1.7e+9;
+          e3 = energy_after3 - energy_before3;
+          execTime3 = double(end3 - start3) / FREQ;
         }
 #else
         /* For single precision */
@@ -428,10 +514,15 @@ int main(int argc, char **argv) {
 
           /* start measure */
           fprintf(stderr, "reached benchmark\n");
-          const uint64_t start1 = cpu::get_ticks_acquire();
-          sumsq(data4, array_length);
-          const uint64_t end1 = cpu::get_ticks_release();
-          fprintf(stderr, "after benchmark\n");
+          uint64_t check4;
+          long long energy_before4 = get_energy();
+          const uint64_t start4 = cpu::get_ticks_acquire();
+          while (itr4 < ITRS) {
+            sumsq(data4, array_length);
+            itr4++;
+          }
+          const uint64_t end4 = cpu::get_ticks_release();
+          long long energy_after4 = get_energy();
           /* end measure */
 
           // // ending count
@@ -442,8 +533,8 @@ int main(int argc, char **argv) {
           //   printf("Measured %lld hw cache misses (thread 5)\n", count);
           // }
           // count4 = count;
-
-          execTime4 = double(end1 - start1) / 1.7e+9;
+          // e4 = energy_after - energy_before;
+          execTime4 = double(end4 - start4) / FREQ;
         }
 #else
         /* For single precision */
@@ -496,10 +587,15 @@ int main(int argc, char **argv) {
 
           /* start measure */
           fprintf(stderr, "reached benchmark\n");
-          const uint64_t start1 = cpu::get_ticks_acquire();
-          sumsq(data5, array_length);
-          const uint64_t end1 = cpu::get_ticks_release();
-          fprintf(stderr, "after benchmark\n");
+          uint64_t check5;
+          long long energy_before5 = get_energy();
+          const uint64_t start5 = cpu::get_ticks_acquire();
+          while (itr5 < ITRS) {
+            sumsq(data5, array_length);
+            itr5++;
+          }
+          const uint64_t end5 = cpu::get_ticks_release();
+          long long energy_after5 = get_energy();
           /* end measure */
 
           // ending count
@@ -510,8 +606,8 @@ int main(int argc, char **argv) {
           //   printf("Measured %lld hw cache misses(thread 6)\n", count);
           // }
           // count5 = count;
-
-          execTime5 = double(end1 - start1) / 1.7e+9;
+          // e5 = energy_after - energy_after;
+          execTime5 = double(end5 - start5) / FREQ;
         }
 #else
         /* For single precision */
@@ -536,26 +632,49 @@ int main(int argc, char **argv) {
       // }
     }
   }
-  long long energy_after = get_energy();
-/* Number of flops and bytes executed */
+  // long long energy_after = get_energy();
+  /* Number of flops and bytes executed */
+
 #if (TYPE)
-  double flops = 2 * array_length * MAD_PER_ELEMENT * 2.0;
-  fprintf(stderr, "if type\n");
+  double flops = 2 * array_length * MAD_PER_ELEMENT * ITRS *
+                 (1.0 / 128.0); // MAD_PER_ELEMENT = flops per inner loop itr
 #else
-  double flops = 2 * array_length * MAD_PER_ELEMENT * 4.0;
+  double flops = 2 * array_length * MAD_PER_ELEMENT * 4.0 * (1.0 / 8.0);
+  // double flops = array_length * MAD_PER_ELEMENT / 64 ;
 #endif
   double bytes = 2 * array_length * sizeof(double);
-  int threads_measured = 2;
-  double miss = 64 * (count0 + count1 + count2 + count3 + count4 + count5);
+  double threads_measured = 2.0;
+  double count_per_thread =
+      (count0 + count1 + count2 + count3 + count4 + count5) / threads_measured;
   double miss_per_thread =
-      64 * (count0 + count1 + count2 + count3 + count4 + count5) /
+      64.0 * (count0 + count1 + count2 + count3 + count4 + count5) /
       threads_measured;
   double total_miss = miss_per_thread * 6;
-  double total_flops = flops * 6;
+  double total_flops = flops * ITRS;
+
   long long int energy_consumed;
-  if (energy_after > energy_before)
-    energy_consumed = energy_after - energy_before;
+  if (e0 > e1)
+    energy_consumed = e0;
   else
+    energy_consumed = e1;
+  if (energy_consumed > e2)
+    energy_consumed = energy_consumed;
+  else
+    energy_consumed = e2;
+  if (energy_consumed > e3)
+    energy_consumed = energy_consumed;
+  else
+    energy_consumed = e3;
+  if (energy_consumed > e4)
+    energy_consumed = energy_consumed;
+  else
+    energy_consumed = e4;
+  if (energy_consumed > e5)
+    energy_consumed = energy_consumed;
+  else
+    energy_consumed = e5;
+
+  if (energy_consumed < 0)
     energy_consumed = -1000000;
 
   /* take the maximum of the execution times of the two cores */
@@ -587,20 +706,27 @@ int main(int argc, char **argv) {
           "%lf\tExecution time 3: %lf\tExecution time 4: %lf\tExecution time "
           "5: %lf\n",
           execTime0, execTime1, execTime2, execTime3, execTime4, execTime5);
+  fprintf(
+      stderr,
+      "Execution time 0: %lld\tExecution time 1: %lld\tExecution time 2: "
+      "%lld\tExecution time 3: %lld\tExecution time 4: %lld\tExecution time "
+      "5: %lld\n",
+      ITRS);
   fprintf(stderr, "Execution time: %lf\n", execTime);
+  fprintf(stderr, "Execution cycle: %ld\n", temp);
   fprintf(stderr, "GBytes: %5.03lf GFlops: %5.03lf\n", bytes / 1.0e+9,
           flops / 1.0e+9);
   fprintf(stderr, "Bandwidth: %lf GB/s\n", bytes / execTime / 1.0e+9);
   fprintf(stderr, "Performance: %lf GFLOPS\n", flops / execTime / 1.0e+9);
-  fprintf(stderr, "HW miss in %d threads : %lf GB\n", threads_measured,
-          miss / 1.0e+9);
-  // fprintf(stderr, "Performance: %lf GFLOPS\n", (flops * 6) /
-  // execTime / 1.0e+9);
-  fprintf(stderr, "OI: %lf \n", (flops) / miss);
+  fprintf(stderr, "Average count of %s event in %lf threads : %lf \n",
+          papi_event_name, threads_measured, count_per_thread);
+  fprintf(stderr, "Average count of %s event in 6 threads : %lf \n",
+          papi_event_name, count_per_thread * 6);
   fprintf(stderr, "Energy: %lld \n", energy_consumed);
   fprintf(stderr, "\n\n\n");
 
   /*printing to std out*/
+  // fprintf(stdout, "%lld\n", count2);
   fprintf(stdout, "%lf\n", execTime);
   fprintf(stdout, "%5.03lf\n%5.03lf\n", bytes / 1.0e+9, flops / 1.0e+9);
   fprintf(stdout, "%lf\n", bytes / execTime / 1.0e+9);
