@@ -101,8 +101,8 @@ int main(int argc, char **argv) {
   const char *duration = "ITRS";
   const long long ITRS = atoll(getenv(duration));
 
-  // const char *freq = "FREQ";
-  // const long long FREQ = atoll(getenv(freq));
+  const char *freq = "FREQ";
+  const long long FREQ = atoll(getenv(freq));
   // long long unsigned CLCK = int(time_per_benchmark * FREQ);
   // CLCK = 20;
   // fprintf(stderr, "CLCK %llu \n", CLCK);
