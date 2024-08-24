@@ -706,12 +706,6 @@ int main(int argc, char **argv) {
           "%lf\tExecution time 3: %lf\tExecution time 4: %lf\tExecution time "
           "5: %lf\n",
           execTime0, execTime1, execTime2, execTime3, execTime4, execTime5);
-  fprintf(
-      stderr,
-      "Execution time 0: %lld\tExecution time 1: %lld\tExecution time 2: "
-      "%lld\tExecution time 3: %lld\tExecution time 4: %lld\tExecution time "
-      "5: %lld\n",
-      ITRS);
   fprintf(stderr, "Execution time: %lf\n", execTime);
   fprintf(stderr, "Execution cycle: %ld\n", temp);
   fprintf(stderr, "GBytes: %5.03lf GFlops: %5.03lf\n", bytes / 1.0e+9,
