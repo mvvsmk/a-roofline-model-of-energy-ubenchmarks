@@ -637,7 +637,7 @@ int main(int argc, char **argv) {
 
 #if (TYPE)
   double flops = 2 * array_length * MAD_PER_ELEMENT * ITRS *
-                 (1.0 / 128.0); // MAD_PER_ELEMENT = flops per inner loop itr
+                 (1.0 / 64.0); // MAD_PER_ELEMENT = flops per inner loop itr
 #else
   double flops = 2 * array_length * MAD_PER_ELEMENT * 4.0 * (1.0 / 8.0);
   // double flops = array_length * MAD_PER_ELEMENT / 64 ;
@@ -650,7 +650,7 @@ int main(int argc, char **argv) {
       64.0 * (count0 + count1 + count2 + count3 + count4 + count5) /
       threads_measured;
   double total_miss = miss_per_thread * 6;
-  double total_flops = flops * ITRS;
+  double total_flops = flops * 6;
 
   long long int energy_consumed;
   if (e0 > e1)
