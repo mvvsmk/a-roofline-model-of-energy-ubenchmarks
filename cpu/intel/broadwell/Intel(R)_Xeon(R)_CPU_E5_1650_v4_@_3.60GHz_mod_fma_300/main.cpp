@@ -533,7 +533,7 @@ int main(int argc, char **argv) {
           //   printf("Measured %lld hw cache misses (thread 5)\n", count);
           // }
           // count4 = count;
-          // e4 = energy_after - energy_before;
+          e4 = energy_after4 - energy_before4;
           execTime4 = double(end4 - start4) / FREQ;
         }
 #else
@@ -606,7 +606,7 @@ int main(int argc, char **argv) {
           //   printf("Measured %lld hw cache misses(thread 6)\n", count);
           // }
           // count5 = count;
-          // e5 = energy_after - energy_after;
+          e5 = energy_after5 - energy_before5;
           execTime5 = double(end5 - start5) / FREQ;
         }
 #else
