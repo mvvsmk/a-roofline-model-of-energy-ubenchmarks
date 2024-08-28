@@ -73,7 +73,7 @@ long long get_energy() {
   long long value;
 
   /* Open the command for reading. */
-  fp = popen("rdmsr -u 1553 | xargs -0 -I{} echo {}", "r");
+  fp = popen("rdmsr -u 0xc001029B | xargs -0 -I{} echo {}", "r");
   if (fp == NULL) {
     fprintf(stderr, "Failed to run command\n");
     exit(1);
@@ -123,12 +123,16 @@ int main(int argc, char **argv) {
   double *data3 = (double *)memalign(64, array_length * sizeof(double));
   double *data4 = (double *)memalign(64, array_length * sizeof(double));
   double *data5 = (double *)memalign(64, array_length * sizeof(double));
+  double *data6 = (double *)memalign(64, array_length * sizeof(double));
+  double *data7 = (double *)memalign(64, array_length * sizeof(double));
   memset(data0, 0, array_length * sizeof(double));
   memset(data1, 0, array_length * sizeof(double));
   memset(data2, 0, array_length * sizeof(double));
   memset(data3, 0, array_length * sizeof(double));
   memset(data4, 0, array_length * sizeof(double));
   memset(data5, 0, array_length * sizeof(double));
+  memset(data6, 0, array_length * sizeof(double));
+  memset(data7, 0, array_length * sizeof(double));
 
   // printf("data,address\n");
   // for(int i = 0; i < array_size; i++){
@@ -138,14 +142,16 @@ int main(int argc, char **argv) {
   // return 0;
 
   /*oi counter*/
-  long long count0, count1, count2, count3, count4, count5;
-  long long e0, e1, e2, e3, e4, e5;
+  long long count0, count1, count2, count3, count4, count5, count6, count7;
+  long long e0, e1, e2, e3, e4, e5, e6, e7;
   e0 = 0;
   e1 = 0;
   e2 = 0;
   e3 = 0;
   e4 = 0;
   e5 = 0;
+  e6 = 0;
+  e7 = 0;
 
   count0 = 0;
   count1 = 0;
@@ -153,6 +159,8 @@ int main(int argc, char **argv) {
   count3 = 0;
   count4 = 0;
   count5 = 0;
+  count6 = 0;
+  count7 = 0;
 
   long long itr0 = 0;
   long long itr1 = 0;
@@ -160,11 +168,13 @@ int main(int argc, char **argv) {
   long long itr3 = 0;
   long long itr4 = 0;
   long long itr5 = 0;
+  long long itr6 = 0;
+  long long itr7 = 0;
 
   uint64_t temp;
 
   /* Timers */
-  double execTime0, execTime1, execTime2, execTime3, execTime4, execTime5;
+  double execTime0, execTime1, execTime2, execTime3, execTime4, execTime5, execTime6, execTime7;
 
   /* Since the Intel(R) Xeon(R) CPU E5-1650 v4 @ 3.60GHz has 6 cores, we use
      OpenMP to run computation on all cores. If the target processor has more
@@ -173,7 +183,7 @@ int main(int argc, char **argv) {
    */
 
   // long long energy_before = get_energy();
-#pragma omp parallel num_threads(6)
+#pragma omp parallel num_threads(8)
   {
 #pragma omp sections
     {
@@ -533,7 +543,7 @@ int main(int argc, char **argv) {
           //   printf("Measured %lld hw cache misses (thread 5)\n", count);
           // }
           // count4 = count;
-          // e4 = energy_after - energy_before;
+          e4 = energy_after4 - energy_before4;
           execTime4 = double(end4 - start4) / FREQ;
         }
 #else
@@ -606,7 +616,7 @@ int main(int argc, char **argv) {
           //   printf("Measured %lld hw cache misses(thread 6)\n", count);
           // }
           // count5 = count;
-          // e5 = energy_after - energy_after;
+          e5 = energy_after5 - energy_before5;
           execTime5 = double(end5 - start5) / FREQ;
         }
 #else
@@ -621,6 +631,151 @@ int main(int argc, char **argv) {
 #endif
         // sleep (10);
       }
+/* OpenMP thread for seventh core */
+#pragma omp section
+      {
+        fprintf(stderr, "Starting seventh computation thread...\n");
+#if (TYPE)
+        /* For double	precision */
+        {
+          // int retval;
+          // retval = PAPI_library_init(PAPI_VER_CURRENT);
+          // if (retval != PAPI_VER_CURRENT) {
+          //   fprintf(stderr, "Error initializing PAPI! %s \n",
+          //           PAPI_strerror(retval));
+          // }
+          // int eventset = PAPI_NULL;
+          // // papi creating event set
+          // retval = PAPI_create_eventset(&eventset);
+          // if (retval != PAPI_OK) {
+          //   fprintf(stderr, "Error creating eventset! %s\n",
+          //           PAPI_strerror(retval));
+          // }
+
+          // // papi adding event set
+          // retval = PAPI_add_named_event(eventset, papi_event_name);
+          // if (retval != PAPI_OK) {
+          //   fprintf(stderr, "Error adding %s: %s\n", papi_event_name,
+          //           PAPI_strerror(retval));
+          // }
+
+          // // starting count
+          // long long count;
+          // PAPI_reset(eventset);
+          // retval = PAPI_start(eventset);
+          // if (retval != PAPI_OK) {
+          //   fprintf(stderr, "Error PAPI: %s\n", PAPI_strerror(retval));
+          // }
+
+          /* start measure */
+          fprintf(stderr, "reached benchmark\n");
+          uint64_t check6;
+          long long energy_before6 = get_energy();
+          const uint64_t start6 = cpu::get_ticks_acquire();
+          while (itr6 < ITRS) {
+            sumsq(data6, array_length);
+            itr6++;
+          }
+          const uint64_t end6 = cpu::get_ticks_release();
+          long long energy_after6 = get_energy();
+          /* end measure */
+
+          // ending count
+          // retval = PAPI_stop(eventset, &count);
+          // if (retval != PAPI_OK) {
+          //   fprintf(stderr, "Error stopping:  %s\n", PAPI_strerror(retval));
+          // } else {
+          //   printf("Measured %lld hw cache misses(thread 6)\n", count);
+          // }
+          // count5 = count;
+          e6 = energy_after6 - energy_before6;
+          execTime6 = double(end6 - start6) / FREQ;
+        }
+#else
+        /* For single precision */
+        {
+          const uint64_t start1 = cpu::get_ticks_acquire();
+          sumsqf((const float *)data5, array_length * 2);
+          const uint64_t end1 = cpu::get_ticks_release();
+
+          execTime5 = double(end1 - start1) / 1.7e+9;
+        }
+#endif
+        // sleep (10);
+      }
+/* OpenMP thread for 8 core */
+#pragma omp section
+      {
+        fprintf(stderr, "Starting 8th computation thread...\n");
+#if (TYPE)
+        /* For double	precision */
+        {
+          // int retval;
+          // retval = PAPI_library_init(PAPI_VER_CURRENT);
+          // if (retval != PAPI_VER_CURRENT) {
+          //   fprintf(stderr, "Error initializing PAPI! %s \n",
+          //           PAPI_strerror(retval));
+          // }
+          // int eventset = PAPI_NULL;
+          // // papi creating event set
+          // retval = PAPI_create_eventset(&eventset);
+          // if (retval != PAPI_OK) {
+          //   fprintf(stderr, "Error creating eventset! %s\n",
+          //           PAPI_strerror(retval));
+          // }
+
+          // // papi adding event set
+          // retval = PAPI_add_named_event(eventset, papi_event_name);
+          // if (retval != PAPI_OK) {
+          //   fprintf(stderr, "Error adding %s: %s\n", papi_event_name,
+          //           PAPI_strerror(retval));
+          // }
+
+          // // starting count
+          // long long count;
+          // PAPI_reset(eventset);
+          // retval = PAPI_start(eventset);
+          // if (retval != PAPI_OK) {
+          //   fprintf(stderr, "Error PAPI: %s\n", PAPI_strerror(retval));
+          // }
+
+          /* start measure */
+          fprintf(stderr, "reached benchmark\n");
+          uint64_t check7;
+          long long energy_before7 = get_energy();
+          const uint64_t start7 = cpu::get_ticks_acquire();
+          while (itr7 < ITRS) {
+            sumsq(data7, array_length);
+            itr7++;
+          }
+          const uint64_t end7 = cpu::get_ticks_release();
+          long long energy_after7 = get_energy();
+          /* end measure */
+
+          // ending count
+          // retval = PAPI_stop(eventset, &count);
+          // if (retval != PAPI_OK) {
+          //   fprintf(stderr, "Error stopping:  %s\n", PAPI_strerror(retval));
+          // } else {
+          //   printf("Measured %lld hw cache misses(thread 6)\n", count);
+          // }
+          // count5 = count;
+          e7 = energy_after7 - energy_before7;
+          execTime7 = double(end7 - start7) / FREQ;
+        }
+#else
+        /* For single precision */
+        {
+          const uint64_t start1 = cpu::get_ticks_acquire();
+          sumsqf((const float *)data5, array_length * 2);
+          const uint64_t end1 = cpu::get_ticks_release();
+
+          execTime5 = double(end1 - start1) / 1.7e+9;
+        }
+#endif
+        // sleep (10);
+      }
+
       // removed
       /* OpenMP thread for power measurement, if any */
       // #pragma omp section
@@ -645,12 +800,12 @@ int main(int argc, char **argv) {
   double bytes = 2 * array_length * sizeof(double);
   double threads_measured = 2.0;
   double count_per_thread =
-      (count0 + count1 + count2 + count3 + count4 + count5) / threads_measured;
+      (count0 + count1 + count2 + count3 + count4 + count5 + count6 + count7) / threads_measured;
   double miss_per_thread =
-      64.0 * (count0 + count1 + count2 + count3 + count4 + count5) /
+      64.0 * (count0 + count1 + count2 + count3 + count4 + count5 + count6 + count7) /
       threads_measured;
-  double total_miss = miss_per_thread * 6;
-  double total_flops = flops * 6;
+  double total_miss = miss_per_thread * 8;
+  double total_flops = flops * 8;
 
   long long int energy_consumed;
   if (e0 > e1)
@@ -673,6 +828,14 @@ int main(int argc, char **argv) {
     energy_consumed = energy_consumed;
   else
     energy_consumed = e5;
+  if (energy_consumed > e6)
+    energy_consumed = energy_consumed;
+  else
+    energy_consumed = e6;
+  if (energy_consumed > e7)
+    energy_consumed = energy_consumed;
+  else
+    energy_consumed = e7;
 
   if (energy_consumed < 0)
     energy_consumed = -1000000;
@@ -699,6 +862,14 @@ int main(int argc, char **argv) {
     execTime = execTime;
   else
     execTime = execTime5;
+  if (execTime > execTime6)
+    execTime = execTime;
+  else
+    execTime = execTime6;
+  if (execTime > execTime7)
+    execTime = execTime;
+  else
+    execTime = execTime7;
 
   /* Print performance info */
   fprintf(stderr,
@@ -714,8 +885,8 @@ int main(int argc, char **argv) {
   fprintf(stderr, "Performance: %lf GFLOPS\n", flops / execTime / 1.0e+9);
   fprintf(stderr, "Average count of %s event in %lf threads : %lf \n",
           papi_event_name, threads_measured, count_per_thread);
-  fprintf(stderr, "Average count of %s event in 6 threads : %lf \n",
-          papi_event_name, count_per_thread * 6);
+  fprintf(stderr, "Average count of %s event in 8 threads : %lf \n",
+          papi_event_name, count_per_thread * 8);
   fprintf(stderr, "Energy: %lld \n", energy_consumed);
   fprintf(stderr, "\n\n\n");
 
@@ -736,4 +907,6 @@ int main(int argc, char **argv) {
   free(data3);
   free(data4);
   free(data5);
+  free(data6);
+  free(data7);
 }

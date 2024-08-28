@@ -1,27 +1,26 @@
+
 section .text align=64
 global sumsq
 global sumsqf
 
 sumsq:
-	sub rdi, -128
+	sub rdi, -256
 	vzeroall
-	mov eax, 256
-	sub rsi, 32
+	mov rax, 512
+	sub rsi, 64
 	
 	jb .restore
 	align 32
 .process_by_32:
-	vmovapd ymm0, [rdi - 128]
-	vmovapd ymm1, [rdi - 96]
-	vmovapd ymm2, [rdi - 64]
-	vmovapd ymm3, [rdi - 32]
-	vmovapd ymm4, [rdi]
-	vmovapd ymm5, [rdi + 32]
-	vmovapd ymm6, [rdi + 64]
-	vmovapd ymm7, [rdi + 96]
 
+	vmovapd ymm0, [rdi - 256]
+	vmovapd ymm1, [rdi - 224]
+	vmovapd ymm2, [rdi - 192]
+	vmovapd [rdi - 256], ymm0
+    
+	mov rcx, 781
+.loop0:
 
-%rep MAD_PER_ELEMENT
 	vfmadd213pd ymm0, ymm0, ymm0
 	vfmadd213pd ymm1, ymm1, ymm1
 	vfmadd213pd ymm2, ymm2, ymm2
@@ -30,12 +29,166 @@ sumsq:
 	vfmadd213pd ymm5, ymm5, ymm5
 	vfmadd213pd ymm6, ymm6, ymm6
 	vfmadd213pd ymm7, ymm7, ymm7
-%endrep
+	vfmadd213pd ymm8, ymm8, ymm8
+	vfmadd213pd ymm9, ymm9, ymm9
+	vfmadd213pd ymm10, ymm10, ymm10
+	vfmadd213pd ymm11, ymm11, ymm11
+	vfmadd213pd ymm12, ymm12, ymm12
+	vfmadd213pd ymm13, ymm13, ymm13
+	vfmadd213pd ymm14, ymm14, ymm14
+	vfmadd213pd ymm15, ymm15, ymm15
+
+	loop .loop0
+
+	vfmadd213pd ymm0, ymm0, ymm0
+	vfmadd213pd ymm1, ymm1, ymm1
+	vfmadd213pd ymm2, ymm2, ymm2
+	vfmadd213pd ymm3, ymm3, ymm3
+
+
+	
+    vmovapd ymm3, [rdi - 160]
+	vmovapd ymm4, [rdi - 128]
+	vmovapd ymm5, [rdi - 96]
+	vmovapd [rdi - 224], ymm1
+    
+	mov rcx, 781
+.loop1:
+
+	vfmadd213pd ymm0, ymm0, ymm0
+	vfmadd213pd ymm1, ymm1, ymm1
+	vfmadd213pd ymm2, ymm2, ymm2
+	vfmadd213pd ymm3, ymm3, ymm3
+	vfmadd213pd ymm4, ymm4, ymm4
+	vfmadd213pd ymm5, ymm5, ymm5
+	vfmadd213pd ymm6, ymm6, ymm6
+	vfmadd213pd ymm7, ymm7, ymm7
+	vfmadd213pd ymm8, ymm8, ymm8
+	vfmadd213pd ymm9, ymm9, ymm9
+	vfmadd213pd ymm10, ymm10, ymm10
+	vfmadd213pd ymm11, ymm11, ymm11
+	vfmadd213pd ymm12, ymm12, ymm12
+	vfmadd213pd ymm13, ymm13, ymm13
+	vfmadd213pd ymm14, ymm14, ymm14
+	vfmadd213pd ymm15, ymm15, ymm15
+
+	loop .loop1
+
+	vfmadd213pd ymm0, ymm0, ymm0
+	vfmadd213pd ymm1, ymm1, ymm1
+	vfmadd213pd ymm2, ymm2, ymm2
+	vfmadd213pd ymm3, ymm3, ymm3
+
+
+	
+	vmovapd ymm6, [rdi - 64]
+    vmovapd ymm7, [rdi - 32]
+	vmovapd ymm8, [rdi]
+	vmovapd [rdi - 192], ymm2
+    
+	mov rcx, 781
+.loop2:
+
+	vfmadd213pd ymm0, ymm0, ymm0
+	vfmadd213pd ymm1, ymm1, ymm1
+	vfmadd213pd ymm2, ymm2, ymm2
+	vfmadd213pd ymm3, ymm3, ymm3
+	vfmadd213pd ymm4, ymm4, ymm4
+	vfmadd213pd ymm5, ymm5, ymm5
+	vfmadd213pd ymm6, ymm6, ymm6
+	vfmadd213pd ymm7, ymm7, ymm7
+	vfmadd213pd ymm8, ymm8, ymm8
+	vfmadd213pd ymm9, ymm9, ymm9
+	vfmadd213pd ymm10, ymm10, ymm10
+	vfmadd213pd ymm11, ymm11, ymm11
+	vfmadd213pd ymm12, ymm12, ymm12
+	vfmadd213pd ymm13, ymm13, ymm13
+	vfmadd213pd ymm14, ymm14, ymm14
+	vfmadd213pd ymm15, ymm15, ymm15
+
+	loop .loop2
+
+	vfmadd213pd ymm0, ymm0, ymm0
+	vfmadd213pd ymm1, ymm1, ymm1
+	vfmadd213pd ymm2, ymm2, ymm2
+	vfmadd213pd ymm3, ymm3, ymm3
+
+
+    
+	vmovapd ymm9, [rdi + 32]
+	vmovapd ymm10, [rdi + 64]
+	vmovapd ymm11, [rdi + 96]
+	vmovapd [rdi - 160], ymm3
+    
+	mov rcx, 781
+.loop3:
+
+	vfmadd213pd ymm0, ymm0, ymm0
+	vfmadd213pd ymm1, ymm1, ymm1
+	vfmadd213pd ymm2, ymm2, ymm2
+	vfmadd213pd ymm3, ymm3, ymm3
+	vfmadd213pd ymm4, ymm4, ymm4
+	vfmadd213pd ymm5, ymm5, ymm5
+	vfmadd213pd ymm6, ymm6, ymm6
+	vfmadd213pd ymm7, ymm7, ymm7
+	vfmadd213pd ymm8, ymm8, ymm8
+	vfmadd213pd ymm9, ymm9, ymm9
+	vfmadd213pd ymm10, ymm10, ymm10
+	vfmadd213pd ymm11, ymm11, ymm11
+	vfmadd213pd ymm12, ymm12, ymm12
+	vfmadd213pd ymm13, ymm13, ymm13
+	vfmadd213pd ymm14, ymm14, ymm14
+	vfmadd213pd ymm15, ymm15, ymm15
+
+	loop .loop3
+
+	vfmadd213pd ymm0, ymm0, ymm0
+	vfmadd213pd ymm1, ymm1, ymm1
+	vfmadd213pd ymm2, ymm2, ymm2
+	vfmadd213pd ymm3, ymm3, ymm3
+
+
+    
+    
+	vmovapd ymm12, [rdi + 160]
+	vmovapd ymm4, [rdi + 128]
+	vmovapd ymm6, [rdi + 192]
+	vmovapd [rdi - 128], ymm4
+    
+	mov rcx, 781
+.loop4:
+
+	vfmadd213pd ymm0, ymm0, ymm0
+	vfmadd213pd ymm1, ymm1, ymm1
+	vfmadd213pd ymm2, ymm2, ymm2
+	vfmadd213pd ymm3, ymm3, ymm3
+	vfmadd213pd ymm4, ymm4, ymm4
+	vfmadd213pd ymm5, ymm5, ymm5
+	vfmadd213pd ymm6, ymm6, ymm6
+	vfmadd213pd ymm7, ymm7, ymm7
+	vfmadd213pd ymm8, ymm8, ymm8
+	vfmadd213pd ymm9, ymm9, ymm9
+	vfmadd213pd ymm10, ymm10, ymm10
+	vfmadd213pd ymm11, ymm11, ymm11
+	vfmadd213pd ymm12, ymm12, ymm12
+	vfmadd213pd ymm13, ymm13, ymm13
+	vfmadd213pd ymm14, ymm14, ymm14
+	vfmadd213pd ymm15, ymm15, ymm15
+
+	loop .loop4
+
+	vfmadd213pd ymm0, ymm0, ymm0
+	vfmadd213pd ymm1, ymm1, ymm1
+	vfmadd213pd ymm2, ymm2, ymm2
+	vfmadd213pd ymm3, ymm3, ymm3
+
+
+
 	add rdi, rax
-	sub rsi, 32
+	sub rsi, 64
 	jae .process_by_32
 .restore:
-	add rsi, 32
+	add rsi, 64
 	jz .finish
 	int 3
 .finish:
@@ -61,7 +214,7 @@ sumsqf:
 	vmovaps ymm7, [rdi + 96]
 
 
-%rep MAD_PER_ELEMENT
+%rep 1
 	vmulps ymm0, ymm0, ymm0
 	vaddps ymm8, ymm8, ymm0
 	vmulps ymm1, ymm1, ymm1
