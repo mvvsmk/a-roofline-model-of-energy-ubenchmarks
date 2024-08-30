@@ -103,12 +103,6 @@ int main(int argc, char **argv) {
 
   const char *freq = "FREQ";
   const long long FREQ = atoll(getenv(freq));
-  // long long unsigned CLCK = int(time_per_benchmark * FREQ);
-  // CLCK = 20;
-  // fprintf(stderr, "CLCK %llu \n", CLCK);
-
-  const char *env_var_name = "PAPI_EVENT_NAME";
-  const char *papi_event_name = getenv(env_var_name);
 
   const char *env_var_cache_size = "SIZE_ARR";
   long long unsigned array_size = atoll(getenv(env_var_cache_size));
@@ -210,9 +204,9 @@ int main(int argc, char **argv) {
           }
 
           // papi adding event set
-          retval = PAPI_add_named_event(eventset, papi_event_name);
+          retval = PAPI_add_named_event(eventset, "PAPI_L2_DCM");
           if (retval != PAPI_OK) {
-            fprintf(stderr, "Error adding %s: %s\n", papi_event_name,
+            fprintf(stderr, "Error adding PAPI_L2_DCM: %s\n",
                     PAPI_strerror(retval));
           }
 
@@ -285,9 +279,9 @@ int main(int argc, char **argv) {
           }
 
           // papi adding event set
-          retval = PAPI_add_named_event(eventset, papi_event_name);
+          retval = PAPI_add_named_event(eventset, "PAPI_L2_ICM");
           if (retval != PAPI_OK) {
-            fprintf(stderr, "Error adding %s: %s\n", papi_event_name,
+            fprintf(stderr, "Error adding PAPI_L2_ICM: %s\n",
                     PAPI_strerror(retval));
           }
 
@@ -799,10 +793,10 @@ int main(int argc, char **argv) {
   // double flops = array_length * MAD_PER_ELEMENT / 64 ;
 #endif
   double bytes = 2 * array_length * sizeof(double);
-  double threads_measured = 2.0;
+  double threads_measured = 1.0;
   double count_per_thread =
       (count0 + count1 + count2 + count3 + count4 + count5 + count6 + count7) /
-      threads_measured;
+      threads_measured; // both theads measure different things
   double miss_per_thread =
       64.0 *
       (count0 + count1 + count2 + count3 + count4 + count5 + count6 + count7) /
