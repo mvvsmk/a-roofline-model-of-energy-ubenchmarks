@@ -292,4 +292,5 @@ int main(int argc, char **argv) {
   free(data3);
   free(data4);
   free(data5);
+  return 0;
 }
