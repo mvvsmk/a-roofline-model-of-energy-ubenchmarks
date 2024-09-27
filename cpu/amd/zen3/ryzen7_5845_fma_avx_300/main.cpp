@@ -70,17 +70,15 @@ unsigned long get_thread_id() {
 }
 
 /* ======================================================== */
+template <typename T> T getMedian(T arr[], int size) {
+  std::sort(arr, arr + size);
 
-double get_median(long long itr0, long long itr1, long long itr2,
-                  long long itr3, long long itr4, long long itr5) {
-  // Store all variables in an array
-  long long arr[6] = {itr0, itr1, itr2, itr3, itr4, itr5};
-
-  std::sort(arr, arr + 6);
-
-  return (arr[2] + arr[3]) / 2;
+  if (size % 2 != 0) {
+    return arr[size / 2];
+  } else {
+    return (arr[(size / 2) - 1] + arr[size / 2]) / 2.0;
+  }
 }
-
 namespace cpu {
 
 inline static uint64_t get_ticks_acquire() {
@@ -109,7 +107,7 @@ long long get_energy() {
   long long value;
 
   /* Open the command for reading. */
-  fp = popen("rdmsr -u 0xc001029B | xargs -0 -I{} echo {}", "r");
+  fp = popen("rdmsr -u 1553 | xargs -0 -I{} echo {}", "r");
   if (fp == NULL) {
     fprintf(stderr, "Failed to run command\n");
     exit(1);
@@ -174,10 +172,9 @@ int main(int argc, char **argv) {
   double *data[8] = {data0, data1, data2, data3, data4, data5, data6, data7};
   long long counts[8] = {0, 0, 0, 0, 0, 0, 0, 0};
   long long energies[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+  /* Timers */
   double execTimes[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
-  /* Timers */
-  double execTime0, execTime1, execTime2, execTime3, execTime4, execTime5;
   int retval_init = PAPI_library_init(PAPI_VER_CURRENT);
   if (retval_init != PAPI_VER_CURRENT) {
     printf("PAPI library init error !\n");
@@ -270,13 +267,14 @@ int main(int argc, char **argv) {
     energy_consumed = -1000000;
 
   /* take the maximum of the execution times of the two cores */
-  double execTime = getmax(execTimes, 8);
+  // double execTime = getmax(execTimes, 6);
+  double execTime = getMedian(execTimes, 8);
   /* Print performance info */
   fprintf(stderr, "Execution time (max): %lf\n", execTime);
-  fprintf(stderr, "GBytes: %5.03lf GFlops: %5.03lf\n", bytes / 1.0e+9,
-          flops / 1.0e+9);
-  fprintf(stderr, "Bandwidth: %lf GB/s\n", bytes / execTime / 1.0e+9);
-  fprintf(stderr, "Performance: %lf GFLOPS\n", flops / execTime / 1.0e+9);
+  fprintf(stderr, "Bandwidth: %lf GB/s\n", total_miss / execTime / 1.0e+9);
+  // fprintf(stderr, "Gig count per sec: %lf GB/s\n", get_sum(counts, 6) * 4.0 /
+  // execTime / 1.0e+9);
+  fprintf(stderr, "Performance: %lf GFLOPS\n", total_flops / execTime / 1.0e+9);
   fprintf(stderr, "Energy: %lld \n", energy_consumed);
   fprintf(stderr, "\n\n\n");
 
@@ -284,8 +282,8 @@ int main(int argc, char **argv) {
   // fprintf(stdout, "%lld\n", count2);
   fprintf(stdout, "%lf\n", execTime);
   fprintf(stdout, "%5.03lf\n%5.03lf\n", bytes / 1.0e+9, flops / 1.0e+9);
-  fprintf(stdout, "%lf\n", bytes / execTime / 1.0e+9);
-  fprintf(stdout, "%lf\n", flops / execTime / 1.0e+9);
+  fprintf(stdout, "%lf\n", total_miss / execTime / 1.0e+9);
+  fprintf(stdout, "%lf\n", total_flops / execTime / 1.0e+9);
   fprintf(stdout, "%lld\n", energy_consumed);
   fprintf(stdout, "%lf\n", total_flops / total_miss);
   fprintf(stdout, "%lf\n", total_flops);
@@ -297,4 +295,7 @@ int main(int argc, char **argv) {
   free(data3);
   free(data4);
   free(data5);
+  free(data6);
+  free(data7);
+  return 0;
 }
