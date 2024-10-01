@@ -29,6 +29,23 @@ THE SOFTWARE.
 #include <string>
 #include <unistd.h>
 #include <unordered_map>
+// #include <linux/powercap.h>
+
+#ifndef CORE
+#define CORE
+#endif 
+
+#ifdef UNCORE
+#undef CORE
+#endif
+
+#ifdef CORE
+#define ENERGY_UJ_PATH "/sys/class/powercap/intel-rapl:0:0/energy_uj"
+#endif
+
+#ifdef UNCORE
+#define ENERGY_UJ_PATH "/sys/class/powercap/intel-rapl:0:1/energy_uj"
+#endif
 
 // #define ITRS 100000
 // #define ITRS 10000
@@ -101,29 +118,28 @@ inline static uint64_t get_ticks_release() {
 } // namespace cpu
 /* ======================================================== */
 
-long long get_energy() {
-  FILE *fp;
-  char path[1035];
-  long long value;
+unsigned long long get_energy() {
+    FILE *fp;
+    unsigned long long energy_uj;
 
-  /* Open the command for reading. */
-  fp = popen("rdmsr -u 1553 | xargs -0 -I{} echo {}", "r");
-  if (fp == NULL) {
-    fprintf(stderr, "Failed to run command\n");
-    exit(1);
-  }
+    // Open the sysfs entry for energy in microjoules
+    fp = fopen(ENERGY_UJ_PATH, "r");
+    if (fp == NULL) {
+        perror("Failed to open energy_uj file");
+        return EXIT_FAILURE;
+    }
 
-  /* Read the output a line at a time - it should be just one line. */
-  if (fgets(path, sizeof(path) - 1, fp) != NULL) {
-    // fprintf(stderr, "Output: %s", path);
-    value = atoll(path); // Convert the output to an integer
-  }
+    // Read the energy value
+    if (fscanf(fp, "%llu", &energy_uj) != 1) {
+        perror("Failed to read energy");
+        fclose(fp);
+        return EXIT_FAILURE;
+    }
 
-  /* Close the pipe and print the value. */
-  pclose(fp);
-  // fprintf(stderr, "Value: %lld\n", value);
+    printf("Energy : %llu uJ\n", energy_uj);
 
-  return value;
+    fclose(fp);
+    return energy_uj;
 }
 
 /* Single and double precision sum squared functions */
@@ -167,7 +183,7 @@ int main(int argc, char **argv) {
 
   double *data[6] = {data0, data1, data2, data3, data4, data5};
   long long counts[6] = {0, 0, 0, 0, 0, 0};
-  long long energies[6] = {0, 0, 0, 0, 0, 0};
+  unsigned long long energies[6] = {0, 0, 0, 0, 0, 0};
   double execTimes[6] = {0, 0, 0, 0, 0, 0};
 
   /* Timers */
@@ -281,7 +297,7 @@ int main(int argc, char **argv) {
   fprintf(stdout, "%5.03lf\n%5.03lf\n", bytes / 1.0e+9, flops / 1.0e+9);
   fprintf(stdout, "%lf\n", total_miss / execTime / 1.0e+9);
   fprintf(stdout, "%lf\n", total_flops / execTime / 1.0e+9);
-  fprintf(stdout, "%lld\n", energy_consumed);
+  fprintf(stdout, "%llu\n", energy_consumed);
   fprintf(stdout, "%lf\n", total_flops / total_miss);
   fprintf(stdout, "%lf\n", total_flops);
   fprintf(stdout, "%lf\n", total_miss);
