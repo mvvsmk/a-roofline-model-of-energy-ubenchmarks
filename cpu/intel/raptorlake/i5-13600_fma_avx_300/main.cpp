@@ -41,10 +41,20 @@ THE SOFTWARE.
 
 #ifdef CORE
 #define ENERGY_UJ_PATH "/sys/class/powercap/intel-rapl:0:0/energy_uj"
+#define get_energy_before \
+        energy_before_core = get_energy_core(); 
+#define get_energy_after \
+        energy_after_core = get_energy_core(); 
 #endif
 
 #ifdef UNCORE
 #define ENERGY_UJ_PATH "/sys/class/powercap/intel-rapl:0:1/energy_uj"
+#define get_energy_before \
+        energy_before_core = get_energy_core(); \
+        energy_before_zone = get_energy_zone(); 
+#define get_energy_after \
+        energy_after_core = get_energy_core(); \
+        energy_after_zone = get_energy_zone(); 
 #endif
 
 // #define ITRS 100000
@@ -118,12 +128,12 @@ inline static uint64_t get_ticks_release() {
 } // namespace cpu
 /* ======================================================== */
 
-unsigned long long get_energy() {
+unsigned long long get_energy_core() {
     FILE *fp;
     unsigned long long energy_uj;
 
     // Open the sysfs entry for energy in microjoules
-    fp = fopen(ENERGY_UJ_PATH, "r");
+    fp = fopen("cat /sys/class/powercap/intel-rapl:0:0/energy_uj", "r");
     if (fp == NULL) {
         perror("Failed to open energy_uj file");
         return EXIT_FAILURE;
@@ -136,7 +146,31 @@ unsigned long long get_energy() {
         return EXIT_FAILURE;
     }
 
-    printf("Energy : %llu uJ\n", energy_uj);
+    printf("Energy core : %llu uJ\n", energy_uj);
+
+    fclose(fp);
+    return energy_uj;
+}
+
+unsigned long long get_energy_zone() {
+    FILE *fp;
+    unsigned long long energy_uj;
+
+    // Open the sysfs entry for energy in microjoules
+    fp = fopen("/sys/class/powercap/intel-rapl:0/energy_uj", "r");
+    if (fp == NULL) {
+        perror("Failed to open energy_uj file");
+        return EXIT_FAILURE;
+    }
+
+    // Read the energy value
+    if (fscanf(fp, "%llu", &energy_uj) != 1) {
+        perror("Failed to read energy");
+        fclose(fp);
+        return EXIT_FAILURE;
+    }
+
+    printf("Energy zone : %llu uJ\n", energy_uj);
 
     fclose(fp);
     return energy_uj;
@@ -185,6 +219,7 @@ int main(int argc, char **argv) {
   long long counts[6] = {0, 0, 0, 0, 0, 0};
   unsigned long long energies[6] = {0, 0, 0, 0, 0, 0};
   double execTimes[6] = {0, 0, 0, 0, 0, 0};
+  bool overflow[6] = {false,false,false,false,false,false,};
 
   /* Timers */
   double execTime0, execTime1, execTime2, execTime3, execTime4, execTime5;
@@ -204,11 +239,16 @@ int main(int argc, char **argv) {
   long long start = 0;
   long long end = 0;
   long long count;
-  long long energy_after = 0;
-  long long energy_before = 0;
+  long long unsigned energy_after_core = 0;
+  long long unsigned energy_before_core = 0;
+  long long unsigned energy_after_zone = 0;
+  long long unsigned energy_before_zone = 0;
+
 
 #pragma omp parallel private(eventset, count, itrs, retval, id, start, end,    \
-                                 energy_after, energy_before)
+                                 energy_after_zone, energy_before_zone, \
+                                 energy_after_core, energy_before_core \
+                                 )
   {
     eventset = PAPI_NULL;
 
@@ -238,19 +278,38 @@ int main(int argc, char **argv) {
     uint64_t check0;
     fprintf(stderr, "reached benchmark\n");
 #pragma omp barrier
-    energy_before = get_energy();
+    get_energy_before;
     start = cpu::get_ticks_acquire();
     while (itrs < ITRS) {
       sumsq(data[id], array_length);
       itrs++;
     }
-    energy_after = get_energy();
+
+    get_energy_after;
     end = cpu::get_ticks_release();
 #pragma omp barrier
     fprintf(stderr, "after benchmark\n");
     /* end measure */
 
     // ending count
+    if (energy_after_core < energy_before_core) {
+      energies[id] = 0;
+    }
+    else{
+      energies[id] = energy_after_core - energy_before_core;
+    }
+#ifdef UNCORE
+    if(energy_after_zone < energy_before_zone){
+      energies[id] = 0;
+    }
+    else if(energy_after_zone - energy_before_zone > energies[id]) {
+      energies[id] = energy_after_zone - energy_before_zone - energies[id];
+    }
+    else{
+      energies[id] = 0;
+    }
+#endif
+
     retval = PAPI_stop(eventset, &count);
     if (retval != PAPI_OK) {
       fprintf(stderr, "Error stopping:  %s\n", PAPI_strerror(retval));
@@ -258,8 +317,12 @@ int main(int argc, char **argv) {
       fprintf(stderr, "Measured %lld hw cache misses (thread %d)\n", count, id);
     }
     counts[id] = count;
-    energies[id] = energy_after - energy_before;
+
+    if (energies[id] == 0) {
+      overflow[id] = true;
+    }
     execTimes[id] = double(end - start) / FREQ;
+    fprintf(stderr, "Measured %llu energy (thread %d)\n", energies[id], id);
     fprintf(stderr, "Measured %lf time (thread %d)\n", execTimes[id], id);
   }
 
@@ -275,9 +338,13 @@ int main(int argc, char **argv) {
   double total_miss = get_sum(counts, 6) * 64.0; // 64 is the line size
   double total_flops = flops * 6;
 
-  long long int energy_consumed = getmax(energies, 6);
-  if (energy_consumed <= 0)
-    energy_consumed = -1000000;
+  long long unsigned energy_consumed = getMedian(energies, 6);
+  for(auto of : overflow){
+    if(of){
+      fprintf(stderr, "some overflow");
+      energy_consumed = 0;
+    }
+  }
 
   /* take the maximum of the execution times of the two cores */
   // double execTime = getmax(execTimes, 6);
