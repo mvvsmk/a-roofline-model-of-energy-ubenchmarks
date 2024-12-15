@@ -157,8 +157,8 @@ long long test_bench(const size_t array_length, const long long FREQ) {
 int main(int argc, char **argv) {
   omp_set_num_threads(6);
 
-  const char *duration = "ITRS";
-  const long long ITRS = atoll(getenv(duration));
+  // const char *duration = "ITRS";
+  // const long long ITRS = atoll(getenv(duration));
 
   const char *freq = "FREQ";
   const long long FREQ = atoll(getenv(freq));
@@ -221,8 +221,8 @@ int main(int argc, char **argv) {
   long long unsigned energy_before_zone = 0;
 
 #pragma omp parallel private(eventset, count, itrs, retval, id, start, end,    \
-                                 energy_after_zone, energy_before_zone,        \
-                                 energy_after_core, energy_before_core)
+                             energy_after_zone, energy_before_zone,            \
+                             energy_after_core, energy_before_core)
   {
     eventset = PAPI_NULL;
     itrs = 0;
@@ -322,21 +322,20 @@ int main(int argc, char **argv) {
   /* Print performance info */
   fprintf(stderr, "Execution time (median): %lf\n", execTime);
   fprintf(stderr, "Bandwidth: %lf GB/s\n", total_miss / execTime / 1.0e+9);
-  // fprintf(stderr, "Gig count per sec: %lf GB/s\n", get_sum(counts, 6) * 4.0 /
-  // execTime / 1.0e+9);
+  fprintf(stderr, "Performance: %lf GFlops/s\n",
+          total_flops / execTime / 1.0e+9);
   fprintf(stderr, "Total flops calculated : %lf\n", total_flops);
   fprintf(stderr, "Total events PAPI : %lld\n", get_sum(counts, 6));
-  fprintf(stderr, "Total events * 8 used to debug flops : %lf\n",
-          get_sum(counts, 6) * 8.0);
+  fprintf(stderr, "Total events * 4 used to debug flops : %lf\n",
+          get_sum(counts, 6) * 4.0);
   fprintf(stderr, "Performance: %lf GFLOPS\n", total_flops / execTime / 1.0e+9);
   fprintf(stderr, "Energy: %lld \n", energy_consumed);
   fprintf(stderr, "OI: %lf \n", total_flops / total_miss);
   fprintf(stderr, "\n\n\n");
 
   /*printing to std out*/
-  // fprintf(stdout, "%lld\n", count2);
   fprintf(stdout, "%lf\n", execTime);
-  fprintf(stdout, "%5.03lf\n%5.03lf\n", bytes / 1.0e+9, flops / 1.0e+9);
+  fprintf(stdout, "%5.03lf\n%5.03lf\n", total_miss / 1.0e+9, flops / 1.0e+9);
   fprintf(stdout, "%lf\n", total_miss / execTime / 1.0e+9);
   fprintf(stdout, "%lf\n", total_flops / execTime / 1.0e+9);
   fprintf(stdout, "%llu\n", energy_consumed);
