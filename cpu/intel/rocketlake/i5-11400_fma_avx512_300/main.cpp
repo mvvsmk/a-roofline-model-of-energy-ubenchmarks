@@ -129,19 +129,44 @@ extern "C" void sumsq(const double *data, size_t length);
 extern "C" void sumsqf(const float *data, size_t length);
 
 long long test_bench(const size_t array_length, const long long FREQ) {
-  double *test_data = (double *)memalign(64, array_length * sizeof(double));
-  memset(test_data, 0, array_length * sizeof(double));
+  double *test_data1 = (double *)memalign(64, array_length * sizeof(double));
+  double *test_data2 = (double *)memalign(64, array_length * sizeof(double));
+  double *test_data3 = (double *)memalign(64, array_length * sizeof(double));
+  double *test_data4 = (double *)memalign(64, array_length * sizeof(double));
+  double *test_data5 = (double *)memalign(64, array_length * sizeof(double));
+  double *test_data6 = (double *)memalign(64, array_length * sizeof(double));
+  memset(test_data1, 0, array_length * sizeof(double));
+  memset(test_data2, 0, array_length * sizeof(double));
+  memset(test_data3, 0, array_length * sizeof(double));
+  memset(test_data4, 0, array_length * sizeof(double));
+  memset(test_data5, 0, array_length * sizeof(double));
+  memset(test_data6, 0, array_length * sizeof(double));
+
   long long test_start = 0;
   long long test_end = 0;
   double test_time = 0.0;
+  std::chrono::time_point<std::chrono::high_resolution_clock> start;
+  std::chrono::time_point<std::chrono::high_resolution_clock> end;
 
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
   test_start = cpu::get_ticks_acquire();
-  sumsq(test_data, array_length);
+  double *data[6] = {test_data1, test_data2, test_data3,
+                     test_data4, test_data5, test_data6};
+  double time_per_thread[6] = {0, 0, 0, 0, 0, 0};
+#pragma omp parallel private(start, end)
+  {
+    start = std::chrono::high_resolution_clock::now();
+    sumsq(data[get_thread_id()], array_length);
+    end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> temp = end - start;
+    time_per_thread[get_thread_id()] = temp.count();
+  }
+
   test_end = cpu::get_ticks_release();
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  test_time = double(test_end - test_start) / FREQ;
-  double calc_itr = std::floor(5.0 / test_time);
+  // test_time = double(test_end - test_start) / FREQ;
+  test_time = getMedian(time_per_thread, 6);
+  double calc_itr = std::floor(1.0 / test_time);
   if (calc_itr < 1) {
     calc_itr = 1;
   }
@@ -150,7 +175,12 @@ long long test_bench(const size_t array_length, const long long FREQ) {
           "\nMeasured test time :  %lf s ,  calc_itr : %lf ,ITR_S : %lld\n",
           test_time, calc_itr, ITR_S);
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  free(test_data);
+  free(test_data1);
+  free(test_data2);
+  free(test_data3);
+  free(test_data4);
+  free(test_data5);
+  free(test_data6);
   return ITR_S;
 }
 
@@ -172,6 +202,7 @@ int main(int argc, char **argv) {
   // TESTING
   // =============================================================================
   const long long ITR_S = test_bench(array_length, FREQ);
+  // const long long ITR_S = 1;
   // TESTING
   // =============================================================================
 
@@ -212,8 +243,10 @@ int main(int argc, char **argv) {
   int retval;
   int id = PAPI_thread_id();
   long long itrs = 0;
-  long long start = 0;
-  long long end = 0;
+  // long long start = 0;
+  // long long end = 0;
+  std::chrono::time_point<std::chrono::high_resolution_clock> start;
+  std::chrono::time_point<std::chrono::high_resolution_clock> end;
   long long count;
   long long unsigned energy_after_core = 0;
   long long unsigned energy_before_core = 0;
@@ -221,8 +254,8 @@ int main(int argc, char **argv) {
   long long unsigned energy_before_zone = 0;
 
 #pragma omp parallel private(eventset, count, itrs, retval, id, start, end,    \
-                             energy_after_zone, energy_before_zone,            \
-                             energy_after_core, energy_before_core)
+                                 energy_after_zone, energy_before_zone,        \
+                                 energy_after_core, energy_before_core)
   {
     eventset = PAPI_NULL;
     itrs = 0;
@@ -254,14 +287,16 @@ int main(int argc, char **argv) {
       fprintf(stderr, "Error PAPI: %s\n", PAPI_strerror(retval));
     }
     energy_before_zone = get_energy_zone();
-    start = cpu::get_ticks_acquire();
+    // start = cpu::get_ticks_acquire();
+    // start measurement through chrono
+    start = std::chrono::high_resolution_clock::now();
     while (itrs < ITR_S) {
       sumsq(data[id], array_length);
       itrs++;
     }
-
+    end = std::chrono::high_resolution_clock::now();
     energy_after_zone = get_energy_zone();
-    end = cpu::get_ticks_release();
+    // end = cpu::get_ticks_release();
     retval = PAPI_stop(eventset, &count);
     if (retval != PAPI_OK) {
       fprintf(stderr, "Error stopping:  %s\n", PAPI_strerror(retval));
@@ -271,7 +306,6 @@ int main(int argc, char **argv) {
     fprintf(stderr, "after benchmark\n");
 #pragma omp barrier
     /* end measure */
-
     // ending count
     if (energy_after_zone < energy_before_zone) {
       energies[id] = 0;
@@ -284,7 +318,8 @@ int main(int argc, char **argv) {
     if (energies[id] == 0) {
       overflow[id] = true;
     }
-    execTimes[id] = double(end - start) / FREQ;
+    std::chrono::duration<double> temp = end - start;
+    execTimes[id] = temp.count();
     fprintf(stderr, "Measured %llu energy (thread %d)\n", energies[id], id);
     fprintf(stderr, "Measured %lf time (thread %d)\n", execTimes[id], id);
   }
